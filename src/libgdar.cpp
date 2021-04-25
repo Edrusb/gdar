@@ -491,6 +491,13 @@ void GdarOpenWindow::on_extract() {
     dialog.add_button(Gtk::Stock::CANCEL, Gtk::RESPONSE_CANCEL);
     dialog.add_button(_("OK"), Gtk::RESPONSE_OK);
 
+    Gtk::CheckButton flat_extract;
+    Gtk::ButtonBox *action_aria;
+    flat_extract.set_label(_("Flat extract"));
+    flat_extract.show();
+    action_aria = dialog.get_action_area();
+    action_aria->pack_end(flat_extract);
+
     string s_treePath = get_treePath();
     string file_name;
     Glib::RefPtr<Gtk::TreeView::Selection> selection = treeView.get_selection();
@@ -504,16 +511,16 @@ void GdarOpenWindow::on_extract() {
     if (res != Gtk::RESPONSE_OK) return;
     ext_dest = dialog.get_filename();
     ext_dest +="/";
-    openThreadPtr = Glib::Thread::create(sigc::mem_fun(*this,&GdarOpenWindow::extractThread),true
-    );
+    openThreadPtr = Glib::Thread::create(sigc::bind(sigc::mem_fun(*this,&GdarOpenWindow::extractThread), flat_extract.get_active()),true);
 }
 
-void GdarOpenWindow::extractThread() {
+void GdarOpenWindow::extractThread(bool flat) {
     extractThreadActive = true;
     m_statusbar.push(_("Extracting files"));
     m_spinner.start();
+    std::cout << "extract flat: " << flat << std::endl;
     try {
-        newDar->extract(ext_src.c_str(),ext_dest.c_str(),extract_stats);
+        newDar->extract(ext_src.c_str(),ext_dest.c_str(),extract_stats,flat);
     } catch (LIBDAR::Egeneric &e) {
         {
             Glib::Mutex::Lock lock(errorMutex);
